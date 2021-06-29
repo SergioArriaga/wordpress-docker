@@ -1,0 +1,5 @@
+nginx/* filter=git-crypt diff=git-crypt
+nginx/*/* filter=git-crypt diff=git-crypt
+docker-compose_ssl1.yaml filter=git-crypt diff=git-crypt
+.htaccess filter=git-crypt diff=git-crypt
+wp-config.php filter=git-crypt diff=git-crypt

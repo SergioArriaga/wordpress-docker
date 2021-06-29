@@ -1,0 +1,84 @@
+version: '3'
+
+services:
+  # Database
+  db:
+    image: hypriot/rpi-mysql
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    env_file: .env
+    environment:
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
+      - MYSQL_USER=$MYSQL_USER
+      - MYSQL_PASSWORD=$MYSQL_PASSWORD
+    networks:
+      - wpsite
+  # phpmyadmin
+  phpmyadmin:
+    depends_on:
+      - db
+    image: jackgruber/phpmyadmin
+    restart: always
+    env_file: .env
+    ports:
+      - '8080:80'
+    environment:
+      - PMA_HOST=db
+      - MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
+    networks:
+      - wpsite
+  # Wordpress
+  wordpress:
+    depends_on:
+      - db
+    image: wordpress:php7.3-fpm-alpine
+    ports:
+      - '8000:80'
+    restart: always
+    volumes:
+      - wordpress:/var/www/html
+    environment:
+      - WORDPRESS_DB_HOST=db:3306
+      - WORDPRESS_DB_USER=$WORDPRESS_DB_USER
+      - WORDPRESS_DB_PASSWORD=$WORDPRESS_DB_PASSWORD
+    networks:
+      - wpsite
+  # Webserver
+  nginx:
+    depends_on:
+      - wordpress
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+    volumes:
+      - wordpress:/var/www/html
+      #     - ./nginx:/etc/nginx
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      #     - ./nginx/conf.d/options-ssl-nginx.conf:/etc/nginx/options-ssl-nginx.conf
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/sites-available:/etc/nginx/sites-available
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled
+      - certbot-etc:/etc/letsencrypt
+    networks:
+      - wpsite
+
+  certbot:
+    depends_on:
+      - nginx
+    image: certbot/certbot:arm32v6-latest
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - wordpress:/var/www/html
+    command: certonly --webroot --webroot-path=/var/www/html --email escribe_tu_dirección_email@hotmail.com --agree-tos --no-eff-email --allow-subset-of-names --force-renewal -d raspi-alvaro.hopto.org
+
+networks:
+  wpsite:
+volumes:
+  certbot-etc:
+  db_data:
+  wordpress:        
